@@ -21,43 +21,45 @@ const ovdje = dirname(fileURLToPath(import.meta.url));
  * ---------------------------------------------------------------- */
 
 function napraviSheet(naziv, redci) {
-  const grid = redci.map((r) => r.slice());
-
-  const sirina = () => grid.reduce((m, r) => Math.max(m, r.length), 0);
-  const poravnaj = () => {
-    const w = sirina();
-    grid.forEach((r) => { while (r.length < w) r.push(''); });
-  };
-
-  return {
+  // grid se drzi kao svojstvo objekta, ne u closureu, da ga test moze
+  // zamijeniti (tabovi.PITANJA.grid = ...) i da to zaista utjece na citanje.
+  const sheet = {
     naziv,
-    grid,
-    getDataRange() {
-      poravnaj();
-      return { getValues: () => grid.map((r) => r.slice()) };
+    grid: redci.map((r) => r.slice()),
+
+    _poravnaj() {
+      const w = this.grid.reduce((m, r) => Math.max(m, r.length), 0);
+      this.grid.forEach((r) => { while (r.length < w) r.push(''); });
     },
-    getRange(red, stupac, brRedaka = 1, brStupaca = 1) {
+
+    getDataRange() {
+      sheet._poravnaj();
+      return { getValues: () => sheet.grid.map((r) => r.slice()) };
+    },
+
+    getRange(red, stupac) {
       return {
         setValues(vrijednosti) {
           for (let i = 0; i < vrijednosti.length; i++) {
             const ciljni = red - 1 + i;
-            while (grid.length <= ciljni) grid.push([]);
+            while (sheet.grid.length <= ciljni) sheet.grid.push([]);
             for (let j = 0; j < vrijednosti[i].length; j++) {
-              grid[ciljni][stupac - 1 + j] = vrijednosti[i][j];
+              sheet.grid[ciljni][stupac - 1 + j] = vrijednosti[i][j];
             }
           }
-          poravnaj();
+          sheet._poravnaj();
         },
         setValue(v) {
           const ciljni = red - 1;
-          while (grid.length <= ciljni) grid.push([]);
-          grid[ciljni][stupac - 1] = v;
-          poravnaj();
+          while (sheet.grid.length <= ciljni) sheet.grid.push([]);
+          sheet.grid[ciljni][stupac - 1] = v;
+          sheet._poravnaj();
         },
         setNumberFormat() { return this; }
       };
     }
   };
+  return sheet;
 }
 
 function napraviOkruzenje(tabovi) {
@@ -423,6 +425,90 @@ test('nepoznata akcija', () => {
   const api = ucitajBackend(svjeziTabovi());
   const rez = tijelo(api.doGet({ parameter: { action: 'nesto' } }));
   provjeri('vraca nepoznata_akcija', rez.greska === 'nepoznata_akcija');
+});
+
+/* -- CONFIG je neobavezan -- */
+
+test('bez taba CONFIG schema i dalje radi', () => {
+  const tabovi = svjeziTabovi();
+  delete tabovi.CONFIG;
+  const api = ucitajBackend(tabovi);
+  const rez = tijelo(api.doGet({ parameter: { action: 'schema' } }));
+
+  provjeri('ne pada', rez.greska === undefined, 'greska: ' + rez.greska);
+  provjeri('pitanja su tu', rez.pitanja.length === 3);
+  provjeri('schema_verzija je prazna', rez.schema_verzija === '');
+  provjeri('upozorenje imenuje CONFIG', (rez.upozorenja || []).some((u) => /CONFIG/.test(u)));
+});
+
+test('CONFIG bez schema_verzija daje upozorenje', () => {
+  const tabovi = svjeziTabovi();
+  tabovi.CONFIG.grid = [['kljuc', 'vrijednost'], ['min_slika', '10']];
+  const api = ucitajBackend(tabovi);
+  const rez = tijelo(api.doGet({ parameter: { action: 'schema' } }));
+  provjeri('upozorava na schema_verzija', (rez.upozorenja || []).some((u) => /schema_verzija/.test(u)));
+  provjeri('upozorava na max_programa_dubinski', (rez.upozorenja || []).some((u) => /max_programa_dubinski/.test(u)));
+});
+
+test('potpun CONFIG ne daje upozorenja', () => {
+  const api = ucitajBackend(svjeziTabovi());
+  const rez = tijelo(api.doGet({ parameter: { action: 'schema' } }));
+  provjeri('nema upozorenja', (rez.upozorenja || []).length === 0, JSON.stringify(rez.upozorenja));
+});
+
+/* -- pravi podaci iz ONBOARDING-DB -- */
+
+test('pravih 62 pitanja iz Sheeta prolazi kroz schemu', () => {
+  const redci = JSON.parse(readFileSync(join(ovdje, 'fixture-pitanja.json'), 'utf8'));
+  const tabovi = svjeziTabovi();
+  tabovi.PITANJA = napraviSheet('PITANJA', redci);
+
+  const api = ucitajBackend(tabovi);
+  const rez = tijelo(api.doGet({ parameter: { action: 'schema' } }));
+
+  provjeri('nazivi stupaca se poklapaju sa Sheetom', rez.greska === undefined, 'greska: ' + rez.poruka);
+  provjeri('62 aktivna pitanja', rez.pitanja.length === 62, 'dobio: ' + rez.pitanja.length);
+  provjeri('52 obavezna', rez.pitanja.filter((p) => p.obavezno).length === 52);
+  provjeri('12 blok pitanja', rez.pitanja.filter((p) => p.blok === 'program').length === 12);
+  provjeri('6 uvjetnih', rez.pitanja.filter((p) => p.uvjet_pitanje).length === 6);
+  provjeri('10 sekcija', new Set(rez.pitanja.map((p) => p.sekcija)).size === 10);
+  provjeri('redoslijed je broj', typeof rez.pitanja[0].redoslijed === 'number');
+
+  // Sekcija 8 visi o q007 — klijent koji je jedini vlasnik je ne vidi.
+  const vizija = rez.pitanja.filter((p) => p.sekcija.indexOf('Osobna vizija') !== -1);
+  provjeri('cijela sekcija 8 je uvjetovana s q007', vizija.length === 6 && vizija.every((p) => p.uvjet_pitanje === 'q007' && p.uvjet_vrijednost === 'DA'));
+
+  // Tipovi koje frontend mora znati iscrtati.
+  const tipovi = new Set(rez.pitanja.map((p) => p.tip));
+  const poznati = ['tekst', 'dugi_tekst', 'broj', 'email', 'telefon', 'url', 'datum',
+    'da_ne', 'skala_1_10', 'jedan_izbor', 'vise_izbora', 'lista', 'izbor_iz_liste', 'matrica'];
+  const nepoznati = [...tipovi].filter((t) => !poznati.includes(t));
+  provjeri('nema tipa izvan ugovora', nepoznati.length === 0, 'nepoznato: ' + nepoznati.join(', '));
+
+  // opcije: UPUTE tab pise @qNNN, a pravi podaci nemaju @. Parser mora primiti oboje.
+  const izvori = rez.pitanja.filter((p) => p.tip === 'izbor_iz_liste' || p.tip === 'matrica').map((p) => p.opcije);
+  provjeri('opcije stizu kao sirovi string', izvori.every((o) => typeof o === 'string' && o.length > 0));
+  provjeri('referenca na lista pitanje je bez @', izvori.some((o) => /(?:izvor|redci)=q\d{3}/.test(o)));
+});
+
+test('upsert radi s pravim id-evima blok pitanja', () => {
+  const redci = JSON.parse(readFileSync(join(ovdje, 'fixture-pitanja.json'), 'utf8'));
+  const tabovi = svjeziTabovi();
+  tabovi.PITANJA = napraviSheet('PITANJA', redci);
+  const api = ucitajBackend(tabovi);
+
+  posalji(api, {
+    token: 'abc123xyz',
+    odgovori: [
+      { pitanje_id: 'q008', odgovor: ['Oslobodena', 'Budi zena novog doba'] },
+      { pitanje_id: 'q042', instanca: '1', odgovor: 'kupac prvog programa' },
+      { pitanje_id: 'q042', instanca: '2', odgovor: 'kupac drugog programa' }
+    ]
+  });
+
+  provjeri('tri retka', brojRedaka(tabovi) === 3);
+  provjeri('lista je JSON', nadjiRed(tabovi, 'q008')[4] === '["Oslobodena","Budi zena novog doba"]');
+  provjeri('blok instance su odvojene', nadjiRed(tabovi, 'q042', '1')[4] !== nadjiRed(tabovi, 'q042', '2')[4]);
 });
 
 console.log('\n' + '-'.repeat(50));

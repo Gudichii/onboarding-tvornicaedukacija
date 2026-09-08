@@ -24,6 +24,9 @@ var KLIJENT_JAVNA_POLJA = ['klijent_id', 'ime', 'brand', 'drive_folder_url', 'fa
 /** Jedini stupci u KLIJENTI koje aplikacija smije mijenjati. */
 var KLIJENT_UPISIVI = ['status_quiz', 'faza'];
 
+/** Koliko se puta blok pitanja ponavlja kad CONFIG ne kaze drugacije. */
+var ZADANI_MAX_PROGRAMA = 2;
+
 var CACHE_KLJUC_SCHEMA = 'schema_v1';
 var CACHE_SEKUNDI = 300;
 var LOCK_MS = 30000;
@@ -110,7 +113,8 @@ function schema_(preskociKes) {
   var rezultat = {
     schema_verzija: String(config.schema_verzija || ''),
     config: config,
-    pitanja: pitanja
+    pitanja: pitanja,
+    upozorenja: upozorenjaSheeta_(config)
   };
 
   // CacheService puca preko 100 KB po kljucu. Ako schema naraste, radimo bez kesa.
@@ -122,11 +126,15 @@ function schema_(preskociKes) {
 }
 
 /**
- * CONFIG je kljuc-vrijednost. Nazivi stupaca nisu fiksirani u shemi, pa
- * prepoznajemo uobicajene varijante, a ako ih nema padamo na prva dva stupca.
+ * CONFIG je kljuc-vrijednost. Tab je neobavezan: ako ga nema, vracamo prazno
+ * i upozorenje, umjesto da cijeli ?action=schema padne. Nazivi stupaca nisu
+ * fiksirani u shemi, pa prepoznajemo uobicajene varijante, a ako ih nema
+ * padamo na prva dva stupca.
  */
 function citajConfig_() {
-  var t = ucitajTablicu_(TAB.CONFIG);
+  var t = ucitajTablicu_(TAB.CONFIG, true);
+  if (!t.postoji) return {};
+
   var iKljuc = prviPostojeci_(t.stupci, ['kljuc', 'ključ', 'key', 'naziv']);
   var iVrijednost = prviPostojeci_(t.stupci, ['vrijednost', 'value', 'val']);
   if (iKljuc === null) iKljuc = 0;
@@ -290,12 +298,38 @@ function azurirajKlijenta_(nadjen, tijelo) {
  * Pomocne funkcije
  * ------------------------------------------------------------------ */
 
-function ucitajTablicu_(nazivTaba) {
+function ucitajTablicu_(nazivTaba, neobavezan) {
   var sheet = SpreadsheetApp.getActive().getSheetByName(nazivTaba);
-  if (!sheet) throw new Error('Nedostaje tab: ' + nazivTaba);
+  if (!sheet) {
+    if (neobavezan) return { sheet: null, stupci: {}, redci: [], postoji: false };
+    throw new Error('Nedostaje tab: ' + nazivTaba);
+  }
   var vrijednosti = sheet.getDataRange().getValues();
-  if (!vrijednosti.length) return { sheet: sheet, stupci: {}, redci: [] };
-  return { sheet: sheet, stupci: mapaStupaca_(vrijednosti[0]), redci: vrijednosti.slice(1) };
+  if (!vrijednosti.length) return { sheet: sheet, stupci: {}, redci: [], postoji: true };
+  return {
+    sheet: sheet,
+    stupci: mapaStupaca_(vrijednosti[0]),
+    redci: vrijednosti.slice(1),
+    postoji: true
+  };
+}
+
+/**
+ * Sto u Sheetu fali da bi aplikacija radila po specifikaciji. Vraca se uz
+ * schemu da se vidi odmah kod provjere u pregledniku, umjesto da se otkrije
+ * tek kad frontend stane bez objasnjenja.
+ */
+function upozorenjaSheeta_(config) {
+  var poruke = [];
+  if (!SpreadsheetApp.getActive().getSheetByName(TAB.CONFIG)) {
+    poruke.push('Nema taba CONFIG. Provjera schema_verzija i broj ponavljanja bloka rade s ugradenim vrijednostima.');
+  } else if (!config.schema_verzija) {
+    poruke.push('CONFIG nema redak schema_verzija.');
+  }
+  if (!config.max_programa_dubinski) {
+    poruke.push('CONFIG nema redak max_programa_dubinski, koristi se ' + ZADANI_MAX_PROGRAMA + '.');
+  }
+  return poruke;
 }
 
 function mapaStupaca_(zaglavlje) {

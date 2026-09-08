@@ -72,11 +72,13 @@ Ova četiri su razlog zašto sustav preživi Karlovo uređivanje Sheeta:
 3. **U tab `PITANJA` se nikad ne piše.** Uređuje ga Karlo ručno.
 4. **`schema_verzija` se provjerava pri startu.** Ako se ne poklapa s očekivanom,
    aplikacija staje s jasnom porukom umjesto da tiho spremi krive podatke.
+   Zahtijeva tab `CONFIG`, kojeg u Sheetu trenutno nema — vidi
+   [`apps-script/README.md`](./apps-script/README.md#tab-config).
 
 ## Stanje
 
-- [x] Backend — `apps-script/Code.gs`, 55 testova prolazi
-- [ ] Provjera backenda na pravom Sheetu
+- [x] Backend — `apps-script/Code.gs`, 76 testova prolazi, uključujući pravih 62 pitanja iz Sheeta
+- [ ] Provjera backenda na pravom Sheetu (deploy + `?action=schema`)
 - [ ] Skeleton frontenda — učitavanje sheme
 - [ ] Renderiranje po tipu pitanja
 - [ ] Uvjetna logika i ponavljajući blokovi

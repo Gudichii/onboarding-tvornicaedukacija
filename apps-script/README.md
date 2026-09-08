@@ -34,6 +34,32 @@ Kopiraj `/exec` URL koji dobiješ i upiši ga u `.env` frontenda kao `VITE_API_U
 > Kod svake izmjene koda radi **Deploy → Manage deployments → uredi → Version: New version**.
 > Ako umjesto toga napraviš novi deployment, dobiješ novi URL i moraš mijenjati `.env`.
 
+## Tab CONFIG
+
+Sheet `ONBOARDING-DB` trenutno ima tabove `DASHBOARD`, `PITANJA`, `UPUTE`, `ODGOVORI`,
+`KLIJENTI` i `PREGLED`. Taba `CONFIG` nema, iako ga specifikacija spominje.
+
+Skripta radi i bez njega — vraća upozorenje umjesto da padne. Ali dvije stvari tada ne rade
+kako su zamišljene: provjera `schema_verzija` pri startu (aplikacija bi trebala stati ako se
+verzija ne poklapa, umjesto da tiho sprema krive podatke) i `max_programa_dubinski`, koji
+određuje koliko se puta blok pitanja ponavlja. Bez njega se koristi ugrađena vrijednost 2.
+
+Da to proradi, dodaj tab `CONFIG` s dva stupca i ovim recima:
+
+| kljuc | vrijednost |
+| --- | --- |
+| `schema_verzija` | `1` |
+| `max_programa_dubinski` | `2` |
+| `bm_id` | tvoj Business Manager ID |
+| `ghl_affiliate_link` | GHL affiliate link |
+| `min_slika` | koliko fotografija tražiš |
+| `min_testimonijala` | koliko testimonijala tražiš |
+
+Nazivi stupaca smiju biti `kljuc`/`vrijednost`, `ključ`/`vrijednost` ili `key`/`value` —
+skripta prepoznaje sve tri varijante, a ako ne prepozna nijednu uzima prva dva stupca.
+
+Nakon dodavanja tab osvježi keš: otvori `?action=schema&svjeze=1`.
+
 ## Provjera da radi
 
 Otvori u pregledniku:
