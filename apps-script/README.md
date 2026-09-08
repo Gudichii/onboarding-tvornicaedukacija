@@ -8,7 +8,7 @@ skriptu u Google editoru, prenesi izmjenu natrag ovamo, inače se sljedeći depl
 Skripta je **container-bound** — vezana je na sam Sheet, pa joj ne treba Sheet ID
 ni poseban pristup.
 
-1. Otvori Google Sheet s tabovima `PITANJA`, `ODGOVORI`, `KLIJENTI`, `CONFIG`.
+1. Otvori Sheet `ONBOARDING-DB` (tabovi `PITANJA`, `ODGOVORI`, `KLIJENTI`).
 2. **Extensions → Apps Script**.
 3. Obriši sadržaj `Code.gs` i zalijepi cijeli [`Code.gs`](./Code.gs) iz ovog foldera.
 4. Spremi (⌘S).
