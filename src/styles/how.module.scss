@@ -1,0 +1,100 @@
+@import 'mixins';
+
+.HowContainer{
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    .contentBlock4{
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        width: 100%;
+        .block{
+            @include Hover;
+            width: 48%;
+            height: auto;
+            padding-right: 4%;
+            padding-left: 4%;
+            padding-bottom: 4%;
+            padding-top: 2%;
+            box-shadow: 4px 4px 20px rgba(0, 0, 0, 0.25);
+            border-radius: 17.9221px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            .blockTitle{
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                .spanNumber{
+                    font-family: 'PoppinsBold';
+                    font-style: normal;
+                    font-weight: 700;
+                    font-size: 100px;
+                    line-height: 150px;
+                    padding-right: 10px;
+                }
+            }
+        }
+        .block:disabled {
+            pointer-events: none;
+           }
+        .block:hover {
+            opacity: 0.9;
+            box-shadow: rgba(0, 0, 0, 0.25) 0 8px 15px;
+            transform: translateY(-2px);
+        }
+        .block:active {
+            box-shadow: none;
+            transform: translateY(0);
+        }
+
+        .yellowBlock{
+            background: rgba(255, 196, 29, 0.49);
+        }
+        .greenBlock{
+            background: rgba(145, 237, 149, 0.84);
+        }
+    }
+}
+
+@media (max-width: 1000px){
+    .HowContainer{
+        .contentBlock4{
+            flex-direction: column;
+            justify-content: space-between;
+            width: 100%;
+            .block{
+                margin-top: 4vh;
+                width: 100%;
+                height: auto;
+                .blockTitle{
+                    .spanNumber{
+                        font-size: 80px;
+                        line-height: 100px;
+                    }
+                }
+            }
+        }
+    }
+}
+
+@media (max-width: 600px){
+    .HowContainer{
+        .contentBlock4{
+            .block{
+                padding-left: 8%;
+                padding-right: 8%;
+                padding-bottom: 8%;
+                padding-top: 6%;
+                .blockTitle{
+                    .spanNumber{
+                        font-size: 60px;
+                        line-height: 80px;
+
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,71 @@
+.wave{
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 85vh;
+    z-index: -999;
+    height: 15vh;
+    width: 100vw;
+}
+
+.oagenciji{
+   height: auto;
+    min-height: 60vh;
+    margin-top: 5vh;
+    display: flex;
+    .contentBlock{
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        .content{
+            max-width: 50%;
+            h2{
+                margin-bottom: 2vh;
+            }
+            button{
+                margin-top: 2vh;
+                min-width: 200px;
+                min-height: 45px;
+                margin-left: 0px;
+                a{
+                    color: #fff
+                }
+            }
+        }
+    }
+}
+
+@media only screen and (max-width: 960px){
+    .oagenciji{
+        .contentBlock{
+            .agencyImage{
+                width: 40%;
+                height: 40%;
+            }
+        }}
+}
+
+@media only screen and (max-width: 700px){
+    .oagenciji{
+        .contentBlock{
+            flex-direction: column-reverse;
+            .content{
+                max-width: 100%;
+            }
+            .agencyImage{
+                width: 60%;
+                height: 60%;
+            }
+        }}
+}
+
+@media only screen and (max-width: 500px){
+    .oagenciji{
+        .contentBlock{
+            .agencyImage{
+                width: 80%;
+                height: 80%;
+            }
+        }}
+}

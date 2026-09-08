@@ -1,0 +1,15 @@
+.modal{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    width: 300px;
+    height: 100px;
+    background: rgba(145, 237, 149, 0.84);
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 20px;
+    .modalText{
+        padding: 5px;
+    }
+}

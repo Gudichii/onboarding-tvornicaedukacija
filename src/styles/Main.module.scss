@@ -1,0 +1,125 @@
+@import 'mixins';
+@import './Routes.module.scss';
+@import './hero.module.scss';
+@import './aboutSeo.module.scss';
+@import './services.module.scss';
+@import './agency.module.scss';
+@import './how.module.scss';
+@import './contact.module.scss';
+@import './cookie.module.scss';
+@import './modal.module.scss';
+
+@font-face {
+    font-family: "Poppins";
+    src: url("../pages/static/fonts/Poppins-Regular.ttf");
+  }
+// @font-face {
+//     font-family: "Poppins";
+//     src: url("../assets/fonts/Poppins-Regular.ttf");
+//   }
+@font-face {
+    font-family: "PoppinsBold";
+    src: url("../pages/static/fonts/Poppins-Bold.ttf");
+}
+
+$black: #000000;
+$yellow: #FFC41D;
+$background: #F5F4F4;
+
+
+
+
+.background{
+    margin-top: -2px;
+    width: 100vw;
+    color: var(--text-color);
+    background-color: var(--bg-color);
+}
+
+
+.container{
+    width: 80vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-left: 10vw;
+    margin-right: 10vw;
+}
+
+.title{
+    @include title;
+    text-decoration: none;
+}
+
+.subtitle1{
+    padding-top: 5vh;
+    padding-bottom: 0vh;
+    @include title;
+    text-align: center;
+}
+
+.subtitle2{
+    padding-top: 5vh;
+    padding-bottom: 5vh;
+    
+    @include title;
+    text-align: center;
+}
+
+.leftTitle{
+    padding-top: 5vh;
+    padding-bottom: 5vh;
+    @include title;
+}
+
+.middleTitle{
+    font-family: "Poppins";
+    font-size: 23px;
+    line-height: 23px;
+    color: #000000;
+}
+
+.Howtitle{
+    font-family: "PoppinsBold";
+    font-size: 40px;
+    line-height: 43px;
+    color: #000000;
+}
+
+.paragraph{
+    font-size: 20px
+}
+
+.span{
+    color: #FFC41D;
+    font-family: "PoppinsBold";
+}
+
+.nav{
+    // padding-top: 5vh;
+    .logoText{
+        @include title;
+      color: #000000;
+      font-size: 30px;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .nav{
+        padding-top: 0;
+        .logoText{
+            font-size: 20px
+        }
+    }
+  }
+
+.externImg{
+    @media (max-width: 960px){
+        width: 300px;
+        height: auto;
+    }
+}
+
+
+@include btn;
+@include Mobile;

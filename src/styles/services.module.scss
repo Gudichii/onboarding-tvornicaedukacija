@@ -1,0 +1,121 @@
+@import 'mixins';
+
+@mixin serviceDirection {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+}
+
+
+.services{
+    @include serviceDirection;
+    align-items: center;
+    .serviceTitles{
+        @include serviceDirection;
+        padding-top: 5vh;
+        padding-bottom: 5vh;
+        h2{
+            margin: 0;
+            padding: 0;
+        }
+    }
+    .contentBlock3{
+        display: flex;
+        flex-wrap: wrap;
+        flex-direction: row;
+        justify-content: center;
+        text-align: center;
+        width: 60vw;
+        .service{
+            @include Hover;
+            text-decoration: none;
+            margin: 1%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            justify-content: space-around;
+            
+            width: 350px;
+            height: 380px;
+            background: #91ED95;
+            border-radius: 17.9221px;
+            box-shadow: 4px 4px 20px rgba(0, 0, 0, 0.25);
+            
+            .img{
+                width: 80%;
+                height: 65%;
+            }
+        }
+
+        .service:disabled {
+            pointer-events: none;
+           }
+        .service:hover {
+            opacity: 0.9;
+            box-shadow: rgba(0, 0, 0, 0.25) 0 8px 15px;
+            transform: translateY(-2px);
+        }
+        .service:active {
+            box-shadow: none;
+            transform: translateY(0);
+        }
+    }
+    }
+    @media only screen and (max-height: 800px){
+        .img{
+            height: 65%;
+            width: 70%;
+        }
+    }
+
+    @media only screen and (max-width: 1800px) {
+        .services{
+            .contentBlock3{
+                width: 80vw;
+                 .service{
+                     height: 40vh;
+                 }
+             }
+         }
+    }
+
+    @media only screen and (max-width: 1000px){
+        .services{
+            .serviceTitles{
+
+                padding-top: 10vh;
+                padding-bottom: 0vh;
+            }
+           .contentBlock3{
+                .service{
+                    margin-top: 4vh;
+                }
+            }
+        }
+    }
+    
+    @media only screen and (max-width: 800px){
+        .services{
+           .contentBlock3{
+                .service{
+                    // width: 40vw;
+                    height: 40vh;
+                }
+            }
+        }
+    }
+    
+    @media only screen and (max-width: 600px){
+        .services{
+           .contentBlock3{
+                .service{
+                    .img{
+                        height: auto;
+                        width: 65%;
+                    }
+                }
+            }
+        }
+    }
