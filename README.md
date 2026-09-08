@@ -1,38 +1,85 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Onboarding — Tvornica Edukacija
 
-## Getting Started
+Web aplikacija kroz koju novi klijent agencije, odmah nakon uplate, predaje sve
+informacije potrebne za izradu svog marketinškog sustava.
 
-First, run the development server:
+Tri dijela: uvodna stranica, quiz sa 62 pitanja (uvjetna logika i ponavljajući
+blokovi), pa završni ekran s checklistom preostalih zadataka.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
+Nema registracije ni lozinke. Klijent ulazi preko linka s tokenom: `?t=abc123xyz`.
+
+## Stack
+
+| Sloj | Tehnologija |
+| --- | --- |
+| Frontend | React + Vite, bez UI biblioteke, obični CSS s brand tokenima |
+| Hosting | Vercel, deploy iz ovog repoa |
+| Backend | Google Apps Script Web App |
+| Baza | Google Sheets |
+
+Nema Node servera, nema baze podataka, nema autentikacije. Apps Script je jedini backend.
+
+## Struktura
+
+```
+src/            React aplikacija
+  styles/       Brand tokeni
+apps-script/    Backend — živi u gitu, deploya se ručno
+public/         Statični materijali
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Pokretanje
 
-You can start editing the page by modifying `pages/index.js`. The page auto-updates as you edit the file.
+```bash
+npm install
+npm run dev
+```
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.js`.
+Backend URL ide u `.env`:
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+```
+VITE_API_URL=https://script.google.com/macros/s/.../exec
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+Kako doći do tog URL-a piše u [`apps-script/README.md`](./apps-script/README.md).
 
-## Learn More
+```bash
+npm run build          # produkcijski build
+npm run test:backend   # testovi Apps Script logike, bez deploya
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Vizualni identitet
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Izvor istine je skill `tvornica-edukacija-brend`. Paleta, tipografija, sustav ploča
+i pravila crteža dolaze odatle i ne improviziraju se u kodu.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+Konstante su u [`src/styles/tokens.css`](./src/styles/tokens.css). Ako neko pravilo
+treba iznimku, prvo se mijenja skill, pa onda taj file — nikad obrnuto.
 
-## Deploy on Vercel
+Kratko, da se ne mora tražiti: tinta `#14121A` na papiru `#F4EFE6`, rust `#AD753C`
+samo za CTA i brand, marker `#E5A11C` samo kao podvlaka. Fraunces za naslove, Jost
+za tekst. Treći font se ne uvodi. Bijela pozadina se ne koristi nigdje.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Pravila koja se ne krše
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+Ova četiri su razlog zašto sustav preživi Karlovo uređivanje Sheeta:
+
+1. **Stupci se čitaju po nazivu, nikad po indeksu.** Ako naiđeš na `row[4]`, to je bug.
+   Stupci se smiju premještati i dodavati bez diranja koda.
+2. **Upis u `ODGOVORI` je upsert po ključu `klijent_id + pitanje_id + instanca`.**
+   Promjena odgovora prepisuje redak. Drugi redak za isto pitanje bi u tabu `PREGLED`
+   spojio stari i novi odgovor u istu ćeliju.
+3. **U tab `PITANJA` se nikad ne piše.** Uređuje ga Karlo ručno.
+4. **`schema_verzija` se provjerava pri startu.** Ako se ne poklapa s očekivanom,
+   aplikacija staje s jasnom porukom umjesto da tiho spremi krive podatke.
+
+## Stanje
+
+- [x] Backend — `apps-script/Code.gs`, 55 testova prolazi
+- [ ] Provjera backenda na pravom Sheetu
+- [ ] Skeleton frontenda — učitavanje sheme
+- [ ] Renderiranje po tipu pitanja
+- [ ] Uvjetna logika i ponavljajući blokovi
+- [ ] Autosave i nastavak gdje se stalo
+- [ ] Uvodna stranica i završni ekran
+- [ ] Vizualni identitet

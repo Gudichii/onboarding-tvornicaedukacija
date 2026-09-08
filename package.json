@@ -1,24 +1,20 @@
 {
-  "name": "next",
-  "version": "0.1.0",
+  "name": "onboarding-tvornicaedukacija",
   "private": true,
+  "version": "0.1.0",
+  "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test:backend": "node apps-script/test.mjs"
   },
   "dependencies": {
-    "@emailjs/browser": "^3.10.0",
-    "copy-webpack-plugin": "^11.0.0",
-    "emailjs-com": "^3.2.0",
-    "next": "13.2.4",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "react-modal": "^3.16.1",
-    "react-scroll": "^1.8.9"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "sass": "^1.59.2"
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.11"
   }
 }
