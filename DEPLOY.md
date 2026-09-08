@@ -1,67 +1,50 @@
-# Deploy — novi GitHub repo + Vercel
+# Deploy na Vercel
 
-Kratki vodič: iz ovog koda napraviti novi repo `Gudichii/onboarding-tvornicaedukacija`
-(svježa povijest, bez starih commitova) i spojiti ga na Vercel.
+Repo je javan i kod je gore na `main` (jedan clean initial commit, bez stare povijesti).
+Ostaje samo spajanje na Vercel.
 
-## 1. Napravi prazan repo na GitHubu
+## 1. Import na Vercel
 
-<https://github.com/new>
+Direktan link: <https://vercel.com/new/import?s=https://github.com/Gudichii/onboarding-tvornicaedukacija>
 
-- **Repository name:** `onboarding-tvornicaedukacija`
-- **Owner:** `Gudichii`
-- **Visibility:** Private (ili Public — kako želiš)
-- **Ne** označavaj "Add a README", "Add .gitignore" ni licencu — repo mora ostati prazan,
-  inače prvi push traži merge.
+Ili ručno preko <https://vercel.com/new> → **Import Git Repository** →
+`Gudichii/onboarding-tvornicaedukacija`.
 
-## 2. Gurni kod kao svježi početak
+Vercel automatski prepozna Next.js. Ništa ne treba mijenjati:
 
-U root folderu projekta (lokalno, gdje imaš svoj GitHub login):
+| Postavka | Vrijednost |
+| --- | --- |
+| Framework Preset | Next.js |
+| Build Command | `next build` |
+| Output Directory | `.next` |
+| Install Command | `npm install` |
 
-```bash
-# 1. novi orphan branch = jedan čisti commit, bez stare povijesti
-git checkout --orphan fresh-start
-git add -A
-git commit -m "Initial commit"
+Zatim **Deploy**.
 
-# 2. preimenuj u main i spoji na novi repo
-git branch -M main
-git remote add new-origin https://github.com/Gudichii/onboarding-tvornicaedukacija.git
-git push -u new-origin main
-```
+## 2. Environment varijable
 
-Stari repo (`Gudichii/altroMedia`) ostaje netaknut — i dalje je spojen kao `origin`.
+Nisu potrebne — projekt nema nijedan `process.env` poziv.
 
-## 3. Spoji na Vercel
+Kontakt forma šalje mail preko `emailjs-com`, a service ID, template ID i public key
+su upisani direktno u `src/Navigation/Contact.js`. To su client-side EmailJS ključevi
+koji ionako završe u JS bundleu svake deployane stranice, pa ih objava repoa ne
+izlaže ništa više nego sam deploy. Ako ipak želiš da ne stoje u kodu, prebaci ih u
+`NEXT_PUBLIC_*` varijable i dodaj ih u Vercel prije deploya.
 
-<https://vercel.com/new>
-
-1. **Import Git Repository** → odaberi `Gudichii/onboarding-tvornicaedukacija`.
-   Ako se repo ne pojavi na popisu: *Adjust GitHub App Permissions* → daj Vercelu
-   pristup tom repou (privatni repozitoriji nisu vidljivi dok se ne odobre).
-2. Vercel automatski prepozna Next.js. Ništa ne mijenjaj:
-   - Framework Preset: **Next.js**
-   - Build Command: `next build`
-   - Output Directory: `.next`
-   - Install Command: `npm install`
-3. **Environment Variables:** projekt ih trenutno uopće ne koristi (nema nijednog
-   `process.env` poziva). Kontakt forma šalje mail preko `emailjs-com`, a service ID,
-   template ID i public key su upisani direktno u `src/Navigation/Contact.js`. To su
-   client-side EmailJS ključevi pa nisu tajna u klasičnom smislu, ali ako repo ideš
-   javno objaviti — prebaci ih u `NEXT_PUBLIC_*` env varijable i dodaj ih ovdje
-   prije deploya.
-4. **Deploy.**
-
-Nakon toga svaki push na `main` radi produkcijski deploy, a svaki drugi branch / pull request
-dobiva svoj preview URL.
-
-## 4. Domena (opcionalno)
+## 3. Domena (opcionalno)
 
 Vercel projekt → **Settings → Domains → Add** → upiši domenu i postavi DNS zapise
 koje Vercel ispiše kod svog registrara.
 
+## Kako radi nakon spajanja
+
+- Push na `main` → produkcijski deploy.
+- Svaki drugi branch ili pull request → vlastiti preview URL.
+
 ## Napomene o buildu
 
-- Build je provjeren lokalno (`npm run build`) i prolazi.
-- Vercel builda na Linuxu, koji je **case-sensitive** za imena datoteka. Pazi da se
-  importi slika poklapaju s pravim imenom datoteke do znaka — takav nesklad ne puca
-  na Windowsu/macOS-u, ali ruši build na Vercelu.
+- Build je provjeren (`npm run build`) i prolazi — svih 11 ruta se generira.
+- Vercel builda na Linuxu, koji je **case-sensitive** za imena datoteka. Importi slika
+  moraju se poklapati s pravim imenom datoteke do znaka. Takav nesklad ne puca na
+  Windowsu ni macOS-u, ali ruši build na Vercelu — jedan takav je već bio u kodu
+  (`KarloImia.png` vs `KarloiMia.png`) i ispravljen je prije prvog commita.
