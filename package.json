@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:backend": "node apps-script/test.mjs",
-    "dev:api": "node apps-script/lokalni-server.mjs"
+    "dev:api": "node apps-script/lokalni-server.mjs",
+    "test:opcije": "node src/opcije.test.mjs",
+    "test": "node apps-script/test.mjs && node src/opcije.test.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

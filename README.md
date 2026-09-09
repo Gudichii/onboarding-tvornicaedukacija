@@ -53,7 +53,8 @@ kod Googlea: prava pristupa, CORS, kvote, sporost.
 
 ```bash
 npm run build          # produkcijski build
-npm run test:backend   # testovi Apps Script logike, bez deploya
+npm test               # svi testovi
+npm run test:backend   # samo Apps Script logika
 ```
 
 ## Vizualni identitet
@@ -89,8 +90,9 @@ Ova četiri su razlog zašto sustav preživi Karlovo uređivanje Sheeta:
 - [ ] Provjera backenda na pravom Sheetu (deploy + `?action=schema`)
 - [x] Skeleton frontenda — učitava shemu i ispisuje svih 62 pitanja
 - [x] Uvodna stranica i ljuska quiza — sekcija po ekranu, progress traka
-- [ ] Renderiranje po tipu pitanja
-- [ ] Uvjetna logika i ponavljajući blokovi
-- [ ] Autosave i nastavak gdje se stalo
+- [x] Renderiranje po tipu pitanja — svih 14 tipova
+- [x] Uvjetna logika
+- [x] Autosave i nastavak gdje se stalo
+- [ ] Ponavljajući blokovi po programu (instance 1 i 2)
 - [ ] Završni ekran s checklistom zadataka
 - [ ] Vizualni identitet — prava rješenja crteža iz Drivea

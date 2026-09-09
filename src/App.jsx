@@ -78,7 +78,14 @@ export default function App() {
     )
   }
 
-  return <Quiz schema={schema} sesija={sesija} naUvod={() => postaviEkran('uvod')} />
+  return (
+    <Quiz
+      schema={schema}
+      sesija={sesija}
+      token={token}
+      naUvod={() => postaviEkran('uvod')}
+    />
+  )
 }
 
 function Greska({ greska }) {
