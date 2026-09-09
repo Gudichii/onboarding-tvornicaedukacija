@@ -6,4 +6,8 @@ dist
 .env
 .env.*
 !.env.example
+# .env.production se commita namjerno: sadrži samo /exec adresu Web Appa, koja
+# ionako završi u JS bundleu jer je preglednik mora pozvati. Nije tajna, a ovako
+# Vercel radi bez ručnog podešavanja varijabli.
+!.env.production
 .vercel

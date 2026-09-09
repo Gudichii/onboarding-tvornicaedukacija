@@ -88,8 +88,9 @@ Ova četiri su razlog zašto sustav preživi Karlovo uređivanje Sheeta:
 - [x] Backend — `apps-script/Code.gs`, 76 testova prolazi, uključujući pravih 62 pitanja iz Sheeta
 - [ ] Provjera backenda na pravom Sheetu (deploy + `?action=schema`)
 - [x] Skeleton frontenda — učitava shemu i ispisuje svih 62 pitanja
+- [x] Uvodna stranica i ljuska quiza — sekcija po ekranu, progress traka
 - [ ] Renderiranje po tipu pitanja
 - [ ] Uvjetna logika i ponavljajući blokovi
 - [ ] Autosave i nastavak gdje se stalo
-- [ ] Uvodna stranica i završni ekran
-- [ ] Vizualni identitet
+- [ ] Završni ekran s checklistom zadataka
+- [ ] Vizualni identitet — prava rješenja crteža iz Drivea

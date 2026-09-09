@@ -1,15 +1,8 @@
 import { useEffect, useState } from 'react'
 import Znak from './Znak.jsx'
+import Uvod from './Uvod.jsx'
+import Quiz from './Quiz.jsx'
 import { dohvatiSchemu, dohvatiSesiju, GreskaApija } from './api.js'
-
-/**
- * Skeleton — korak 3 redoslijeda gradnje.
- *
- * Zadatak ovog ekrana je jedan: dokazati da shema stiže iz Sheeta cijela i
- * ispravno pročitana. Zato ispisuje sirov popis pitanja, bez ijednog polja za
- * unos. Renderiranje po tipu, uvjetna logika i blokovi dolaze u sljedećim
- * koracima, vizualni identitet na kraju.
- */
 
 /** Verzija sheme koju ovaj kod zna čitati. Mora se poklapati s CONFIG. */
 const SCHEMA_VERZIJA = '1'
@@ -18,27 +11,10 @@ function tokenIzUrla() {
   return new URLSearchParams(window.location.search).get('t') || ''
 }
 
-/** Sekcije idu redom pojavljivanja u Sheetu, pitanja unutar njih po redoslijedu.
- *  Sortiranje sekcija po nazivu bi palo čim ih bude deset ("10" prije "2"). */
-function grupirajPoSekcijama(pitanja) {
-  const redom = []
-  const po = new Map()
-  for (const p of pitanja) {
-    if (!po.has(p.sekcija)) {
-      po.set(p.sekcija, [])
-      redom.push(p.sekcija)
-    }
-    po.get(p.sekcija).push(p)
-  }
-  return redom.map((naziv) => ({
-    naziv,
-    pitanja: [...po.get(naziv)].sort((a, b) => a.redoslijed - b.redoslijed),
-  }))
-}
-
 export default function App() {
   const [token] = useState(tokenIzUrla)
   const [stanje, postaviStanje] = useState('ucitavanje')
+  const [ekran, postaviEkran] = useState('uvod')
   const [schema, postaviSchemu] = useState(null)
   const [sesija, postaviSesiju] = useState(null)
   const [greska, postaviGresku] = useState(null)
@@ -80,18 +56,29 @@ export default function App() {
     }
   }, [token])
 
-  return (
-    <main style={omotac}>
-      <header style={{ marginBottom: 'var(--razmak-6)' }}>
-        <Znak visina={40} />
-        <h1 style={{ marginTop: 'var(--razmak-4)' }}>Onboarding</h1>
-      </header>
+  if (stanje === 'ucitavanje') {
+    return (
+      <main style={sredina}>
+        <Znak visina={36} />
+        <p style={{ color: 'var(--tekst-prigusen)', marginTop: 'var(--razmak-4)' }}>Učitavam…</p>
+      </main>
+    )
+  }
 
-      {stanje === 'ucitavanje' && <p style={prigusen}>Učitavam pitanja…</p>}
-      {stanje === 'greska' && <Greska greska={greska} />}
-      {stanje === 'spremno' && <Pregled schema={schema} sesija={sesija} token={token} />}
-    </main>
-  )
+  if (stanje === 'greska') return <Greska greska={greska} />
+
+  if (ekran === 'uvod') {
+    return (
+      <Uvod
+        klijent={sesija?.klijent}
+        brojPitanja={schema.pitanja.length}
+        nastavak={(sesija?.odgovori.length || 0) > 0}
+        naZapocni={() => postaviEkran('quiz')}
+      />
+    )
+  }
+
+  return <Quiz schema={schema} sesija={sesija} naUvod={() => postaviEkran('uvod')} />
 }
 
 function Greska({ greska }) {
@@ -100,141 +87,47 @@ function Greska({ greska }) {
     trazi_prijavu: 'Backend traži prijavu',
     mreza: 'Backend nije dostupan',
     nepoznat_token: 'Link nije prepoznat',
+    nema_tokena: 'Treba ti link iz maila',
     kriva_schema_verzija: 'Sheet i aplikacija nisu usklađeni',
   }
-  return (
-    <section style={okvir}>
-      <h2 style={{ color: 'var(--crvena)' }}>{naslovi[greska.kod] || 'Nešto nije u redu'}</h2>
-      <p>{greska.message}</p>
-      <p style={{ ...prigusen, marginBottom: 0 }}>Kod greške: {greska.kod}</p>
-    </section>
-  )
-}
-
-function Pregled({ schema, sesija, token }) {
-  const sekcije = grupirajPoSekcijama(schema.pitanja)
-  const blok = schema.pitanja.filter((p) => p.blok === 'program')
-  const uvjetna = schema.pitanja.filter((p) => p.uvjet_pitanje)
-  const obavezna = schema.pitanja.filter((p) => p.obavezno)
+  const jeKorisnicka = greska.kod === 'nepoznat_token' || greska.kod === 'nema_tokena'
 
   return (
-    <>
-      {(schema.upozorenja || []).map((u) => (
-        <p key={u} style={upozorenje}>
-          {u}
-        </p>
-      ))}
-
-      {!token && (
-        <section style={okvir}>
-          <h2>Treba ti link iz maila</h2>
-          <p>
-            Ovoj stranici se pristupa preko osobnog linka koji si dobio nakon uplate.
+    <main style={sredina}>
+      <Znak visina={36} />
+      <div style={okvirGreske}>
+        <h1 style={{ fontSize: 26, color: jeKorisnicka ? 'var(--tinta)' : 'var(--crvena)' }}>
+          {naslovi[greska.kod] || 'Nešto nije u redu'}
+        </h1>
+        {jeKorisnicka ? (
+          <p style={{ marginBottom: 0 }}>
+            Ovoj stranici se pristupa preko osobnog linka koji si dobio u mailu nakon uplate.
             Ako ga ne možeš pronaći, javi nam se i poslat ćemo ti ga ponovno.
           </p>
-          <p style={{ ...prigusen, marginBottom: 0 }}>
-            Ispod je popis pitanja — vidljiv je samo dok je aplikacija u izradi.
-          </p>
-        </section>
-      )}
-
-      {sesija && (
-        <section style={okvir}>
-          <h2 style={{ marginBottom: 'var(--razmak-2)' }}>{sesija.klijent.ime}</h2>
-          <p style={{ ...prigusen, marginBottom: 0 }}>
-            {sesija.klijent.brand} · {sesija.odgovori.length} spremljenih odgovora · status{' '}
-            {sesija.klijent.status_quiz || '—'}
-          </p>
-        </section>
-      )}
-
-      <p style={prigusen}>
-        {schema.pitanja.length} pitanja · {obavezna.length} obaveznih · {blok.length} u
-        ponavljajućem bloku · {uvjetna.length} uvjetnih · {sekcije.length} sekcija · schema{' '}
-        {schema.schema_verzija || 'nije zadana'}
-      </p>
-
-      {sekcije.map((s) => (
-        <section key={s.naziv} style={{ marginBottom: 'var(--razmak-6)' }}>
-          <h2>{s.naziv}</h2>
-          {s.pitanja.map((p) => (
-            <Redak key={p.id} pitanje={p} />
-          ))}
-        </section>
-      ))}
-    </>
-  )
-}
-
-function Redak({ pitanje }) {
-  return (
-    <article style={redak}>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
-        <code style={oznaka}>{pitanje.id}</code>
-        <code style={oznaka}>{pitanje.tip}</code>
-        {pitanje.blok === 'program' && <code style={{ ...oznaka, ...blokOznaka }}>blok</code>}
-        {pitanje.uvjet_pitanje && (
-          <code style={{ ...oznaka, ...uvjetOznaka }}>
-            ako {pitanje.uvjet_pitanje} = {pitanje.uvjet_vrijednost}
-          </code>
+        ) : (
+          <>
+            <p>{greska.message}</p>
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--tekst-najtisi)' }}>
+              Kod greške: {greska.kod}
+            </p>
+          </>
         )}
-        {!pitanje.obavezno && <span style={prigusen}>nije obavezno</span>}
       </div>
-
-      <p style={{ margin: '6px 0 0' }}>{pitanje.pitanje}</p>
-      {pitanje.pomoc && (
-        <p style={{ ...prigusen, margin: '4px 0 0', fontSize: 14 }}>{pitanje.pomoc}</p>
-      )}
-      {pitanje.opcije && (
-        <p style={{ ...prigusen, margin: '4px 0 0', fontSize: 13, wordBreak: 'break-word' }}>
-          <code>{pitanje.opcije}</code>
-        </p>
-      )}
-    </article>
+    </main>
   )
 }
 
-/* Privremeni inline stilovi — pravi vizualni identitet dolazi u koraku 8. */
-
-const omotac = {
+const sredina = {
   maxWidth: 'var(--sirina-sadrzaja)',
   margin: '0 auto',
-  padding: '48px 20px 96px',
+  padding: '80px 20px',
 }
 
-const prigusen = { color: 'var(--tekst-prigusen)' }
-
-const okvir = {
+const okvirGreske = {
   background: 'var(--ploca)',
   border: '1px solid var(--tinta)',
   borderRadius: 'var(--rub)',
-  padding: 'var(--razmak-4)',
-  marginBottom: 'var(--razmak-5)',
+  padding: 'var(--razmak-5)',
+  marginTop: 'var(--razmak-5)',
+  maxWidth: '58ch',
 }
-
-const upozorenje = {
-  background: 'var(--ploca)',
-  borderLeft: '3px solid var(--marker)',
-  padding: '10px 14px',
-  marginBottom: 'var(--razmak-3)',
-  fontSize: 14,
-}
-
-const redak = {
-  borderTop: '1px solid var(--linija)',
-  padding: '12px 0',
-}
-
-const oznaka = {
-  fontFamily: 'var(--font-tekst)',
-  fontWeight: 500,
-  fontSize: 12,
-  letterSpacing: '0.04em',
-  border: '1px solid var(--linija)',
-  borderRadius: 'var(--rub)',
-  padding: '1px 6px',
-  color: 'var(--tekst-prigusen)',
-}
-
-const blokOznaka = { borderColor: 'var(--lila)', color: 'var(--tinta)' }
-const uvjetOznaka = { borderColor: 'var(--marker)', color: 'var(--tinta)' }
