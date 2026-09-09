@@ -32,16 +32,24 @@ public/         Statični materijali
 
 ```bash
 npm install
-npm run dev
+npm run dev:api        # lokalni backend na :8787
+npm run dev            # aplikacija na :5173
 ```
 
 Backend URL ide u `.env`:
 
 ```
-VITE_API_URL=https://script.google.com/macros/s/.../exec
+VITE_API_URL=http://localhost:8787
 ```
 
-Kako doći do tog URL-a piše u [`apps-script/README.md`](./apps-script/README.md).
+`npm run dev:api` pokreće pravi `Code.gs` nad kopijom pravih pitanja, u memoriji —
+bez deploya, bez Google prijave, bez pisanja u pravi Sheet. Testni klijent je
+`http://localhost:5173/?t=tok-primjer`.
+
+Za rad protiv pravog Sheeta u `.env` ide `/exec` adresa Web Appa; kako do nje piše
+u [`apps-script/README.md`](./apps-script/README.md). Prije puštanja u produkciju
+uvijek provjeri i protiv nje — lokalni server ne hvata probleme koji postoje samo
+kod Googlea: prava pristupa, CORS, kvote, sporost.
 
 ```bash
 npm run build          # produkcijski build
@@ -79,7 +87,7 @@ Ova četiri su razlog zašto sustav preživi Karlovo uređivanje Sheeta:
 
 - [x] Backend — `apps-script/Code.gs`, 76 testova prolazi, uključujući pravih 62 pitanja iz Sheeta
 - [ ] Provjera backenda na pravom Sheetu (deploy + `?action=schema`)
-- [ ] Skeleton frontenda — učitavanje sheme
+- [x] Skeleton frontenda — učitava shemu i ispisuje svih 62 pitanja
 - [ ] Renderiranje po tipu pitanja
 - [ ] Uvjetna logika i ponavljajući blokovi
 - [ ] Autosave i nastavak gdje se stalo

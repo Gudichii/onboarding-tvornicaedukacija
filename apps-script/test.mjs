@@ -9,96 +9,12 @@
  * ali hvata regresije u pravilima koja se ne smiju slomiti.
  */
 
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
-import vm from 'node:vm';
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
+import { napraviSheet, ucitajBackend, tijelo } from './mock.mjs'
 
-const ovdje = dirname(fileURLToPath(import.meta.url));
-
-/* ---------------------------------------------------------------- *
- * Mock Apps Script okruzenja
- * ---------------------------------------------------------------- */
-
-function napraviSheet(naziv, redci) {
-  // grid se drzi kao svojstvo objekta, ne u closureu, da ga test moze
-  // zamijeniti (tabovi.PITANJA.grid = ...) i da to zaista utjece na citanje.
-  const sheet = {
-    naziv,
-    grid: redci.map((r) => r.slice()),
-
-    _poravnaj() {
-      const w = this.grid.reduce((m, r) => Math.max(m, r.length), 0);
-      this.grid.forEach((r) => { while (r.length < w) r.push(''); });
-    },
-
-    getDataRange() {
-      sheet._poravnaj();
-      return { getValues: () => sheet.grid.map((r) => r.slice()) };
-    },
-
-    getRange(red, stupac) {
-      return {
-        setValues(vrijednosti) {
-          for (let i = 0; i < vrijednosti.length; i++) {
-            const ciljni = red - 1 + i;
-            while (sheet.grid.length <= ciljni) sheet.grid.push([]);
-            for (let j = 0; j < vrijednosti[i].length; j++) {
-              sheet.grid[ciljni][stupac - 1 + j] = vrijednosti[i][j];
-            }
-          }
-          sheet._poravnaj();
-        },
-        setValue(v) {
-          const ciljni = red - 1;
-          while (sheet.grid.length <= ciljni) sheet.grid.push([]);
-          sheet.grid[ciljni][stupac - 1] = v;
-          sheet._poravnaj();
-        },
-        setNumberFormat() { return this; }
-      };
-    }
-  };
-  return sheet;
-}
-
-function napraviOkruzenje(tabovi) {
-  const kes = new Map();
-  return {
-    SpreadsheetApp: {
-      getActive: () => ({ getSheetByName: (n) => tabovi[n] || null })
-    },
-    CacheService: {
-      getScriptCache: () => ({
-        get: (k) => (kes.has(k) ? kes.get(k) : null),
-        put: (k, v) => kes.set(k, v)
-      })
-    },
-    LockService: {
-      getScriptLock: () => ({ tryLock: () => true, releaseLock: () => {} })
-    },
-    ContentService: {
-      MimeType: { JSON: 'application/json' },
-      createTextOutput: (s) => ({ _tekst: s, setMimeType() { return this; } })
-    },
-    Utilities: {
-      formatDate: (d) => {
-        const p = (n) => String(n).padStart(2, '0');
-        return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-      }
-    },
-    Session: { getScriptTimeZone: () => 'Europe/Zagreb' }
-  };
-}
-
-function ucitajBackend(tabovi) {
-  const kod = readFileSync(join(ovdje, 'Code.gs'), 'utf8');
-  const kontekst = vm.createContext(napraviOkruzenje(tabovi));
-  vm.runInContext(kod, kontekst);
-  return kontekst;
-}
-
-const tijelo = (odgovor) => JSON.parse(odgovor._tekst);
+const ovdje = dirname(fileURLToPath(import.meta.url))
 
 /* ---------------------------------------------------------------- *
  * Testni podaci
