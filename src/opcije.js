@@ -121,6 +121,13 @@ export function parsirajMatricu(opcije) {
  * Vrijednosti odgovora
  * ------------------------------------------------------------------ */
 
+/**
+ * Ključ pod kojim odgovor živi u stanju aplikacije. Isti par koji backend
+ * koristi za upsert, bez klijenta: pitanje + instanca. Obična pitanja imaju
+ * praznu instancu, blok pitanja "1" ili "2".
+ */
+export const kljuc = (pitanjeId, instanca) => `${pitanjeId}:${instanca || ''}`
+
 /** Odgovori stižu kao string; JSON tipovi se raspakiraju, ostali ostaju tekst. */
 export function razmotaj(tip, spremljeno) {
   const jeJson = ['vise_izbora', 'lista', 'izbor_iz_liste', 'matrica'].includes(tip)

@@ -93,5 +93,21 @@ export function useSpremanje(token) {
     return () => window.removeEventListener('beforeunload', upozori)
   }, [])
 
-  return { stanje, zabiljezi, isprazni, imaNespremljenih: () => red.current.size > 0 }
+  /**
+   * Upitnik je predan: uz zadnje odgovore ide i status_quiz = Gotovo. To je
+   * jedan od samo dva stupca u KLIJENTI koje backend smije mijenjati.
+   */
+  const zavrsi = useCallback(async () => {
+    if (!token) return
+    try {
+      postaviStanje('sprema')
+      await spremiOdgovore(token, [...red.current.values()], { status_quiz: 'Gotovo' })
+      red.current.clear()
+      if (ziv.current) postaviStanje('spremljeno')
+    } catch {
+      if (ziv.current) postaviStanje('greska')
+    }
+  }, [token])
+
+  return { stanje, zabiljezi, isprazni, zavrsi, imaNespremljenih: () => red.current.size > 0 }
 }

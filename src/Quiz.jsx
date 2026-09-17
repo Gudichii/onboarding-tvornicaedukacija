@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import Znak from './Znak.jsx'
-import Polje, { kljuc } from './Polje.jsx'
-import { razmotaj, zamotaj, jeOdgovoreno } from './opcije.js'
+import Polje from './Polje.jsx'
+import Zavrsetak from './Zavrsetak.jsx'
+import { kljuc, razmotaj, zamotaj, jeOdgovoreno } from './opcije.js'
+import { slozeniSekcije, sveStavke, ZADANI_MAX_PROGRAMA } from './sekcije.js'
 import { useSpremanje } from './spremanje.js'
 
 /**
@@ -10,64 +12,110 @@ import { useSpremanje } from './spremanje.js'
  * Ne jedno pitanje po ekranu (62 ekrana je predugo) i ne svih 62 odjednom
  * (zid teksta na kojem se odustaje).
  *
- * Ponavljajući blokovi po programu još nisu ovdje: pitanja s blok = program
- * zasad se prikazuju jednom, bez instanci. To je sljedeći korak.
+ * Slaganje sekcija, uvjetna vidljivost i ponavljajući blokovi žive u
+ * sekcije.js i pokriveni su testovima; ovdje je samo prikaz i navigacija.
  */
 export default function Quiz({ schema, sesija, token, naUvod }) {
   const [odgovori, postaviOdgovore] = useState(() => pocetniOdgovori(schema, sesija))
   const [indeks, postaviIndeks] = useState(0)
   const [nedostaju, postaviNedostaju] = useState([])
+  const [zavrseno, postaviZavrseno] = useState(false)
   const spremanje = useSpremanje(token)
 
-  // Uvjetna pitanja: skriveno pitanje ne postoji za korisnika — ne prikazuje se,
-  // ne broji se u progress i nikad nije obavezno, bez obzira što piše u Sheetu.
-  const vidljiva = useMemo(
-    () => schema.pitanja.filter((p) => jeVidljivo(p, odgovori)),
-    [schema, odgovori],
+  const maxPrograma = Number(schema.config?.max_programa_dubinski) || ZADANI_MAX_PROGRAMA
+  const sekcije = useMemo(
+    () => slozeniSekcije(schema.pitanja, odgovori, maxPrograma),
+    [schema.pitanja, odgovori, maxPrograma],
   )
 
-  const sekcije = useMemo(() => grupirajPoSekcijama(vidljiva), [vidljiva])
   const sigurniIndeks = Math.min(indeks, Math.max(sekcije.length - 1, 0))
   const trenutna = sekcije[sigurniIndeks]
 
-  const odgovoreno = vidljiva.filter((p) => jeOdgovoreno(p.tip, odgovori[kljuc(p.id, '')])).length
-  const postotak = vidljiva.length ? Math.round((odgovoreno / vidljiva.length) * 100) : 0
+  const sve = sveStavke(sekcije)
+  const odgovoreno = sve.filter((s) =>
+    jeOdgovoreno(s.pitanje.tip, odgovori[kljuc(s.pitanje.id, s.instanca)]),
+  ).length
+  const postotak = sve.length ? Math.round((odgovoreno / sve.length) * 100) : 0
 
   useEffect(() => {
     window.scrollTo({ top: 0 })
-  }, [sigurniIndeks])
+  }, [sigurniIndeks, zavrseno])
 
-  function promijeni(pitanje, nova) {
-    postaviOdgovore((prije) => ({ ...prije, [kljuc(pitanje.id, '')]: nova }))
-    postaviNedostaju((prije) => prije.filter((id) => id !== pitanje.id))
-    if (token) spremanje.zabiljezi(pitanje.id, '', zamotaj(nova))
+  function promijeni(stavka, nova) {
+    const k = kljuc(stavka.pitanje.id, stavka.instanca)
+    postaviOdgovore((prije) => ({ ...prije, [k]: nova }))
+    postaviNedostaju((prije) => prije.filter((x) => x !== k))
+    if (token) spremanje.zabiljezi(stavka.pitanje.id, stavka.instanca, zamotaj(nova))
   }
 
+  /** Obavezna, a prazna pitanja jedne sekcije. */
+  const praznaObavezna = (sekcija) =>
+    sekcija.stavke
+      .filter(
+        (s) =>
+          s.pitanje.obavezno && !jeOdgovoreno(s.pitanje.tip, odgovori[kljuc(s.pitanje.id, s.instanca)]),
+      )
+      .map((s) => kljuc(s.pitanje.id, s.instanca))
+
+  function oznaciFalise(prazna) {
+    postaviNedostaju(prazna)
+    document.getElementById(`pitanje-${prazna[0]}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
+  /**
+   * Slobodna navigacija. Klik na broj sekcije vodi na nju bez provjere —
+   * klijent smije preskakati i vraćati se kako mu odgovara. Obavezna polja
+   * zaustavljaju samo gumb „Sljedeća sekcija" i završetak upitnika.
+   */
   async function idi(noviIndeks) {
     const cilj = Math.min(Math.max(noviIndeks, 0), sekcije.length - 1)
-
-    // Natrag se ide uvijek; naprijed tek kad su obavezna popunjena. Nikad se
-    // ne briše ono što je klijent već napisao — samo se označi što fali.
-    if (cilj > sigurniIndeks) {
-      const prazna = trenutna.pitanja
-        .filter((p) => p.obavezno && !jeOdgovoreno(p.tip, odgovori[kljuc(p.id, '')]))
-        .map((p) => p.id)
-
-      if (prazna.length) {
-        postaviNedostaju(prazna)
-        document
-          .getElementById(`pitanje-${prazna[0]}`)
-          ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        return
-      }
-    }
-
     postaviNedostaju([])
     if (token) await spremanje.isprazni()
     postaviIndeks(cilj)
   }
 
+  async function naprijed() {
+    const prazna = praznaObavezna(trenutna)
+    if (prazna.length) return oznaciFalise(prazna)
+    await idi(sigurniIndeks + 1)
+  }
+
+  /**
+   * Završetak provjerava cijeli upitnik, ne samo zadnju sekciju — inače bi
+   * klijent koji je preskakao sekcije mogao predati upitnik s rupama.
+   */
+  async function zavrsi() {
+    const prvaSRupom = sekcije.findIndex((s) => praznaObavezna(s).length > 0)
+    if (prvaSRupom !== -1) {
+      const prazna = praznaObavezna(sekcije[prvaSRupom])
+      postaviIndeks(prvaSRupom)
+      // Pričekaj da se sekcija iscrta prije nego skrolamo na pitanje u njoj.
+      setTimeout(() => oznaciFalise(prazna), 0)
+      return
+    }
+
+    postaviNedostaju([])
+    if (token) {
+      await spremanje.isprazni()
+      await spremanje.zavrsi()
+    }
+    postaviZavrseno(true)
+  }
+
   if (!trenutna) return null
+
+  if (zavrseno) {
+    return (
+      <Zavrsetak
+        klijent={sesija?.klijent}
+        odgovoreno={odgovoreno}
+        ukupno={sve.length}
+        naPovratak={() => postaviZavrseno(false)}
+      />
+    )
+  }
+
+  const zadnja = sigurniIndeks === sekcije.length - 1
 
   return (
     <>
@@ -93,9 +141,13 @@ export default function Quiz({ schema, sesija, token, naUvod }) {
         <nav style={navSekcija} aria-label="Sekcije">
           {sekcije.map((s, i) => (
             <button
-              key={s.naziv}
+              key={s.kljuc}
               onClick={() => idi(i)}
-              style={{ ...tocka, ...(i === sigurniIndeks ? tockaAktivna : {}) }}
+              style={{
+                ...tocka,
+                ...(i === sigurniIndeks ? tockaAktivna : {}),
+                ...(s.instanca ? tockaProgram : {}),
+              }}
               title={s.naziv}
             >
               {i + 1}
@@ -112,20 +164,33 @@ export default function Quiz({ schema, sesija, token, naUvod }) {
 
         <h1 style={{ marginTop: 'var(--razmak-5)' }}>{trenutna.naziv}</h1>
         <p style={sitno}>
-          Sekcija {sigurniIndeks + 1} od {sekcije.length} · {trenutna.pitanja.length} pitanja
+          Sekcija {sigurniIndeks + 1} od {sekcije.length}
+          {trenutna.instanca && ` · ${trenutna.instanca}. od ${brojPrograma(sekcije)} programa`}
+          {trenutna.stavke.length > 0 && ` · ${trenutna.stavke.length} pitanja`}
         </p>
 
+        {trenutna.cekaProgram && (
+          <p style={upozorenje}>
+            Ova se pitanja ponavljaju za svaki program koji odabereš kao prioritetan. Vrati
+            se na sekciju „Programi i mapa ponude" i odaberi ih, pa će se pojaviti ovdje.
+          </p>
+        )}
+
         <div style={{ marginTop: 'var(--razmak-5)' }}>
-          {trenutna.pitanja.map((p) => (
-            <PitanjeBlok
-              key={p.id}
-              pitanje={p}
-              vrijednost={odgovori[kljuc(p.id, '')]}
-              sviOdgovori={odgovori}
-              fali={nedostaju.includes(p.id)}
-              naPromjenu={(v) => promijeni(p, v)}
-            />
-          ))}
+          {trenutna.stavke.map((s) => {
+            const k = kljuc(s.pitanje.id, s.instanca)
+            return (
+              <PitanjeBlok
+                key={k}
+                kljucStavke={k}
+                pitanje={s.pitanje}
+                vrijednost={odgovori[k]}
+                sviOdgovori={odgovori}
+                fali={nedostaju.includes(k)}
+                naPromjenu={(v) => promijeni(s, v)}
+              />
+            )
+          })}
         </div>
 
         {nedostaju.length > 0 && (
@@ -146,12 +211,14 @@ export default function Quiz({ schema, sesija, token, naUvod }) {
           >
             Natrag
           </button>
-          {sigurniIndeks < sekcije.length - 1 ? (
-            <button className="cta" onClick={() => idi(sigurniIndeks + 1)}>
-              Sljedeća sekcija
+          {zadnja ? (
+            <button className="cta" onClick={zavrsi}>
+              Završi upitnik
             </button>
           ) : (
-            <span style={sitno}>Ovo je zadnja sekcija.</span>
+            <button className="cta" onClick={naprijed}>
+              Sljedeća sekcija
+            </button>
           )}
         </div>
       </main>
@@ -159,12 +226,11 @@ export default function Quiz({ schema, sesija, token, naUvod }) {
   )
 }
 
-function PitanjeBlok({ pitanje, vrijednost, sviOdgovori, fali, naPromjenu }) {
+const brojPrograma = (sekcije) => sekcije.filter((s) => s.instanca).length
+
+function PitanjeBlok({ kljucStavke, pitanje, vrijednost, sviOdgovori, fali, naPromjenu }) {
   return (
-    <article
-      id={`pitanje-${pitanje.id}`}
-      style={{ ...kartica, ...(fali ? karticaFali : {}) }}
-    >
+    <article id={`pitanje-${kljucStavke}`} style={{ ...kartica, ...(fali ? karticaFali : {}) }}>
       <label style={{ display: 'block' }}>
         <span style={tekstPitanja}>{pitanje.pitanje}</span>
         {!pitanje.obavezno && <span style={oznakaNeobavezno}>nije obavezno</span>}
@@ -201,10 +267,6 @@ function Indikator({ stanje, token }) {
   )
 }
 
-/* ------------------------------------------------------------------ *
- * Logika
- * ------------------------------------------------------------------ */
-
 /** Spremljeni odgovori se raspakiraju po tipu pitanja, ne po obliku vrijednosti. */
 function pocetniOdgovori(schema, sesija) {
   const tipovi = new Map(schema.pitanja.map((p) => [p.id, p.tip]))
@@ -215,31 +277,6 @@ function pocetniOdgovori(schema, sesija) {
     stanje[kljuc(o.pitanje_id, o.instanca)] = razmotaj(tip, o.odgovor)
   }
   return stanje
-}
-
-function jeVidljivo(pitanje, odgovori) {
-  if (!pitanje.uvjet_pitanje) return true
-  const dano = odgovori[kljuc(pitanje.uvjet_pitanje, '')]
-  const kaoTekst = Array.isArray(dano) ? dano.join('|') : String(dano ?? '')
-  return kaoTekst.trim().toUpperCase() === String(pitanje.uvjet_vrijednost).trim().toUpperCase()
-}
-
-/** Sekcije idu redom pojavljivanja u Sheetu, pitanja unutar njih po redoslijedu.
- *  Sortiranje sekcija po nazivu bi palo čim ih bude deset ("10" prije "2"). */
-export function grupirajPoSekcijama(pitanja) {
-  const redom = []
-  const po = new Map()
-  for (const p of pitanja) {
-    if (!po.has(p.sekcija)) {
-      po.set(p.sekcija, [])
-      redom.push(p.sekcija)
-    }
-    po.get(p.sekcija).push(p)
-  }
-  return redom.map((naziv) => ({
-    naziv,
-    pitanja: [...po.get(naziv)].sort((a, b) => a.redoslijed - b.redoslijed),
-  }))
 }
 
 /* ------------------------------------------------------------------ *
@@ -280,7 +317,9 @@ const tocka = {
   width: 26,
   height: 26,
   borderRadius: 'var(--rub)',
-  border: '1px solid var(--linija)',
+  borderStyle: 'solid',
+  borderWidth: 1,
+  borderColor: 'var(--linija)',
   background: 'transparent',
   color: 'var(--tekst-najtisi)',
   fontFamily: 'var(--font-tekst)',
@@ -289,11 +328,11 @@ const tocka = {
 }
 
 const tockaAktivna = { borderColor: 'var(--tinta)', color: 'var(--tinta)', fontWeight: 600 }
+// Lila = ono što dolazi iz odabira programa, po značenjima iz palete.
+const tockaProgram = { borderColor: 'var(--lila)' }
 
 const kartica = {
   background: 'var(--ploca)',
-  // Duga svojstva: karticaFali mijenja samo boje rubova, a miješanje sa
-  // skraćenicom `border` React prijavljuje kao izvor grešaka u stilu.
   borderStyle: 'solid',
   borderWidth: '1px 1px 1px 2px',
   borderColor: 'var(--linija)',

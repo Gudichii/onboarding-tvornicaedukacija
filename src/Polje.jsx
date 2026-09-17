@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import {
+  kljuc,
   parsirajIzbor,
   parsirajIzborIzListe,
   parsirajMatricu,
@@ -229,8 +230,6 @@ function stavkeIzvora(sviOdgovori, idPitanja) {
   const raspakirano = Array.isArray(sirovo) ? sirovo : razmotaj('lista', sirovo)
   return raspakirano.map((s) => String(s).trim()).filter(Boolean)
 }
-
-export const kljuc = (pitanjeId, instanca) => `${pitanjeId}:${instanca || ''}`
 
 function IzborIzListe({ pitanje, vrijednost, naPromjenu, sviOdgovori }) {
   const def = parsirajIzborIzListe(pitanje.opcije)
