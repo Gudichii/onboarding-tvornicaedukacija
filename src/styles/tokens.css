@@ -112,7 +112,13 @@ a:hover { color: var(--rust-hover); }
   background: var(--rust);
   color: var(--papir);
   cursor: pointer;
+  /* CTA zna biti i <a>; bez ovoga naslijedi podvlaku od globalnog stila. */
+  text-decoration: none;
   transition: background 120ms ease;
+}
+
+a.cta:hover {
+  color: var(--papir);
 }
 .cta:hover { background: var(--rust-hover); }
 .cta:disabled { opacity: 0.45; cursor: not-allowed; }
